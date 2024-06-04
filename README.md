@@ -6,13 +6,13 @@ This project consists of two main components: a Python script (`DAS.py`) and an 
 
 ## Components
 
-1. **Python Script (`pythonfile.py`)**
+1. **Python Script (`DAS.py`)**
    - Sets up a Dash web application to display real-time altitude data.
    - Reads data from an Arduino device via a serial connection.
    - Includes functionality to handle disconnections and user interruptions gracefully.
    - Displays data on a web dashboard and saves the data to a CSV file.
 
-2. **Arduino Script (`cppfile.ino`)**
+2. **Arduino Script (`UltrasonicSensor.ino`)**
    - Measures distance using an ultrasonic sensor connected to the Arduino.
    - Sends the distance data over the serial port to the connected computer.
 
@@ -45,23 +45,23 @@ This project consists of two main components: a Python script (`DAS.py`) and an 
    - Trig to digital pin 9
    - Echo to digital pin 8
 
-2. Open the `cppfile.ino` script in the Arduino IDE.
+2. Open the `UltrasonicSensor.ino` script in the Arduino IDE.
 3. Upload the script to the Arduino board.
 
 ### Python
 
 1. Install the required Python packages:
    ```sh
-   pip install dash dash-daq dash-bootstrap-components plotly pyserial
+   pip install dash dash-daq dash-bootstrap-components plotly pyserial serial
    ```
 
 2. Ensure the Arduino is connected to the computer and note the COM port (e.g., `COM9`).
 
-3. Update the COM port in the `pythonfile.py` script if necessary.
+3. Update the COM port in the `DAS.py` script if necessary.
 
 4. Run the Python script:
    ```sh
-   python pythonfile.py
+   python DAS.py
    ```
 
 ## Usage
@@ -72,7 +72,7 @@ This project consists of two main components: a Python script (`DAS.py`) and an 
 
 ## Script Details
 
-### Python Script (`pythonfile.py`)
+### Python Script (`DAS.py`)
 
 - **Functions:**
   - `serial_monitor(port, baudrate)`: Continuously reads altitude data from the specified serial port.
@@ -84,7 +84,7 @@ This project consists of two main components: a Python script (`DAS.py`) and an 
   - Updates the graph and text on the web page.
   - Displays modals in case of errors or user interruption.
 
-### Arduino Script (`cppfile.ino`)
+### Arduino Script (`UltrasonicSensor.ino`)
 
 - **Setup:**
   - Initializes serial communication.
@@ -107,12 +107,8 @@ This project consists of two main components: a Python script (`DAS.py`) and an 
 - **ValueError**: Ensure the data being sent by the Arduino is in the correct format.
 - **KeyboardInterrupt**: The script can be terminated using keyboard interrupts (Ctrl+C) or the stop button on the web page.
 
-## License
+## References
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-- [Plotly Dash](https://plotly.com/dash/)
+- [Plotly Dash](https://dash.plotly.com/)
 - [Dash Bootstrap Components](https://dash-bootstrap-components.opensource.faculty.ai/)
 - [Arduino](https://www.arduino.cc/)

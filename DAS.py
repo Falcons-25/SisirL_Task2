@@ -8,15 +8,14 @@ import serial, serial.serialutil
 
 """
 1.  COM Port Selector
-2.  Warning Popups
 """
 
 def serial_monitor(port: str, baudrate: int) -> None:
-    global ser, altitude
+    global ser, altitude, error_code
     ser = serial.Serial(port=port, baudrate=baudrate)
     while True:
         try:
-            altitude = ser.readline().decode().strip()
+            altitude = int(ser.readline().decode().strip())
             alt_data.append(altitude)
             with open("Altitude.csv", 'a') as file:
                 print(time.strftime("%H:%M:%S,"), altitude, file=file)
@@ -32,7 +31,6 @@ def serial_monitor(port: str, baudrate: int) -> None:
             break
     end_code(1, 1)
     os.kill(os.getpid(), signal.SIGINT)
-    # print("Altitude updated")
 
 @callback(Output("live-updates-text", "children"), Input("interval-component", "n_intervals"))
 def update_altitude_value(n):
