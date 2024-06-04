@@ -112,3 +112,4 @@ This project consists of two main components: a Python script (`DAS.py`) and an 
 - [Plotly Dash](https://dash.plotly.com/)
 - [Dash Bootstrap Components](https://dash-bootstrap-components.opensource.faculty.ai/)
 - [Arduino](https://www.arduino.cc/)
+- [PySerial](https://pyserial.readthedocs.io/en/latest/pyserial.html)
