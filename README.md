@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project consists of two main components: a Python script (`DAS.py`) and an Arduino script (`UltrasonicSensor.ino`). The project aims to monitor and display live altitude data from an Arduino device using a web-based dashboard.
+This project consists of two main components: a Python script (`DAS.py`) and an Arduino script (`UltrasonicSensor.ino`). The project aims to monitor and display live altitude data from an Arduino board using a web-based dashboard.
 
 ## Components
 
@@ -51,7 +51,7 @@ This project consists of two main components: a Python script (`DAS.py`) and an 
 ### Python
 
 1. Install the required Python packages:
-   ```sh
+   ```
    pip install dash dash-daq dash-bootstrap-components plotly pyserial serial
    ```
 
@@ -60,7 +60,7 @@ This project consists of two main components: a Python script (`DAS.py`) and an 
 3. Update the COM port in the `DAS.py` script if necessary.
 
 4. Run the Python script:
-   ```sh
+   ```
    python DAS.py
    ```
 
