@@ -4,10 +4,11 @@ from dash import Dash, dcc, html, Input, Output, callback, State
 from dash_daq import StopButton
 import dash_bootstrap_components as dbc
 import plotly, plotly.subplots
-import serial, serial.serialutil
+import serial, serial.serialutil, serial.tools.list_ports
 
 """
 1.  COM Port Selector
+if not selected: show_popup => State(COM_selected, com_modal_selected)
 """
 
 """
@@ -110,6 +111,7 @@ if __name__ == "__main__":
         alt_data = []
         alt_data.append(altitude)
         error_code = 0
+        n = [str(x) for x in serial.tools.list_ports.comports()]
         data = {
             'time': [],
             'altitude': [],
@@ -139,7 +141,11 @@ if __name__ == "__main__":
             dbc.Modal([
                 dbc.ModalHeader(dbc.ModalTitle("Server Shutdown.", style={"fontSize":"30px"}), close_button=True),
                 dbc.ModalBody("The Arduino connection is lost.", style={"fontSize":"20px"}),
-                ], id="ard-modal", keyboard=False, backdrop=True, is_open=False)
+                ], id="ard-modal", keyboard=False, backdrop=True, is_open=False),
+            dbc.Modal([
+                dbc.ModalHeader(dbc.ModalTitle("Select COM Port", style={"fontSize":"30px"}), close_button=False),
+                dcc.Dropdown(n, clearable=False) if not bool(n) else dbc.ModalBody("No COM ports are connected.", style={"fontSize":"20px"}),
+            ], id="com-modal", keyboard=False, backdrop=True, is_open=False),
         ])
         print("Setup complete")
         app.run(debug=False, use_reloader=False)
