@@ -17,10 +17,11 @@ Reads values from serial port and updates 'altitude'.
 def serial_monitor(port: str, baudrate: int) -> None:
     global ser, altitude, error_code
     ser = serial.Serial(port=port, baudrate=baudrate)
+    print("Serial monitor initiated.")
     while True:
         try:
             altitude = int(ser.readline().decode().strip())
-            alt_data.append(altitude)
+            alt_data.append(altitude)                                   # TODO
         except serial.serialutil.SerialException as e:
             print("Arduino disconnected. <serial>")
             error_code = 1
@@ -31,6 +32,24 @@ def serial_monitor(port: str, baudrate: int) -> None:
             return
         except ValueError:
             pass
+
+"""
+Sets COM port once selected and initialises the DAS serial feed.
+"""
+@callback(Output("com-modal", "is_open"), Input("comport-ddwn", "value"))
+def set_comport(selected_port: str):
+    if selected_port=="" or selected_port is None:
+        thread_killer = threading.Thread(target=end_execution_1, args=(2, ))
+        thread_killer.start()
+        return True
+    selected_port = selected_port.split()[0]
+    thread_serial = threading.Thread(target=serial_monitor, args=(selected_port, 9600))
+    try:
+        thread_serial.start()
+    except KeyboardInterrupt:
+        print("User interrupted operation.")
+        os.kill(os.getpid(), signal.SIGINT)
+    return False
 
 """
 Displays any popup based on exception case encountered.
@@ -46,14 +65,15 @@ Displays any popup based on exception case encountered.
     ], [
         State("int-modal", "is_open"),
         State("ard-modal", "is_open"),
+        State("com-modal", "is_open"),
     ])
-def update_altitude_value(n_intervals, n_clicks, int_open, ard_open):
-    
-    style = {"padding":"15px", "fontSize":"60px"}
+def update_altitude_value(n_intervals, n_clicks, int_open, ard_open, com_open):
+    if com_open: return None, [html.Span("", style=alt_style)], False, False
+    alt_style = {"padding":"15px", "fontSize":"60px"}
     data['time'].append(time.strftime("%H:%M:%S"))
     data['altitude'].append(altitude)
     with open("Altitude.csv", "a") as file:
-        print(time.strftime("%H:%M:%S"), altitude, file=file)
+        print(time.strftime("%Y/%m/%d %H:%M:%S"), altitude, file=file)
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
     fig['layout']['legend'] = {'x':0, 'y':0, 'xanchor':'left'}
 
@@ -68,13 +88,13 @@ def update_altitude_value(n_intervals, n_clicks, int_open, ard_open):
     if n_clicks:
         thread_killer = threading.Thread(target=end_execution_1, args=(1, ))
         thread_killer.start()
-        return fig, [html.Span("Altitude: {altitude}ft", style=style)], False, True
+        return fig, [html.Span(f"Altitude: {altitude}ft", style=alt_style)], False, True
     if not error_code:
-        return fig, [html.Span(f'Altitude: {altitude}ft', style=style)], False, False
+        return fig, [html.Span(f'Altitude: {altitude}ft', style=alt_style)], False, False
     elif error_code==1:
-        return fig, [html.Span(f'Altitude: {altitude}ft', style=style)], True, False
+        return fig, [html.Span(f'Altitude: {altitude}ft', style=alt_style)], True, False
     elif error_code==2:
-        return fig, [html.Span(f'Altitude: {altitude}ft', style=style)], False, True
+        return fig, [html.Span(f'Altitude: {altitude}ft', style=alt_style)], False, True
 
 """
 Ends execution of the program on user request.
@@ -82,8 +102,12 @@ Ends execution of the program on user request.
 def end_execution_1(n_clicks):
     if n_clicks:
         with open("Altitude.csv", 'a') as file:
-            print("User terminated operation. <button>")
-            print("User terminated operation.", file=file)
+            if n_clicks==1:
+                print("User terminated operation. <button>")
+                print("User terminated operation.", file=file)
+            elif n_clicks==2:
+                print("No COM Port available.")
+                print("No COM Port available.", file=file)
         time.sleep(0.3)
         os.kill(os.getpid(), signal.SIGINT)
 
@@ -108,20 +132,27 @@ if __name__ == "__main__":
     try:
         # initialisation of global/main variables
         altitude = 0
-        alt_data = []
+        alt_data = []                                                   # TODO
         alt_data.append(altitude)
         error_code = 0
-        n = [str(x) for x in serial.tools.list_ports.comports()]
+        comports = [str(x) for x in serial.tools.list_ports.comports()]
+        print(comports)
         data = {
             'time': [],
             'altitude': [],
         }
-        thread_serial = threading.Thread(target=serial_monitor, args=("COM9", 9600))
+        '''
+        thread_serial = threading.Thread(target=serial_monitor, args=("COM9", 9600))    # FIXME
         try:
+            if not comports:
+                print("No comports found.")
+                time.sleep(0.25)
+                os.kill(os.getpid(), signal.SIGINT)
             thread_serial.start()
         except KeyboardInterrupt:
             print("User interrupted operation.")
             os.kill(os.getpid(), signal.SIGINT)
+        '''
         external_css = ["https://codepen.io/chriddyp/pen/bWLwgP.css", dbc.themes.BOOTSTRAP]
         # initialisation of Dash Webpage
         app = Dash(__name__, external_stylesheets=external_css)
@@ -144,7 +175,7 @@ if __name__ == "__main__":
                 ], id="ard-modal", keyboard=False, backdrop=True, is_open=False),
             dbc.Modal([
                 dbc.ModalHeader(dbc.ModalTitle("Select COM Port", style={"fontSize":"30px"}), close_button=False),
-                dcc.Dropdown(n, clearable=False) if not bool(n) else dbc.ModalBody("No COM ports are connected.", style={"fontSize":"20px"}),
+                dcc.Dropdown(comports, clearable=False, id="comport-ddwn") if comports else dbc.ModalBody("No COM ports are connected.", style={"fontSize":"20px"}, id="comport-ddwn"),
             ], id="com-modal", keyboard=False, backdrop=True, is_open=False),
         ])
         print("Setup complete")
