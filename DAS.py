@@ -141,18 +141,6 @@ if __name__ == "__main__":
             'time': [],
             'altitude': [],
         }
-        '''
-        thread_serial = threading.Thread(target=serial_monitor, args=("COM9", 9600))    # FIXME
-        try:
-            if not comports:
-                print("No comports found.")
-                time.sleep(0.25)
-                os.kill(os.getpid(), signal.SIGINT)
-            thread_serial.start()
-        except KeyboardInterrupt:
-            print("User interrupted operation.")
-            os.kill(os.getpid(), signal.SIGINT)
-        '''
         external_css = ["https://codepen.io/chriddyp/pen/bWLwgP.css", dbc.themes.BOOTSTRAP]
         # initialisation of Dash Webpage
         app = Dash(__name__, external_stylesheets=external_css)
