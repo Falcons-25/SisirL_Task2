@@ -1,4 +1,4 @@
-import time, threading
+import time, threading, random
 import os, signal
 from dash import Dash, dcc, html, Input, Output, callback, State
 from dash_daq import StopButton
@@ -19,6 +19,7 @@ def serial_monitor(port: str, baudrate: int) -> None:
     ser = serial.Serial(port=port, baudrate=baudrate)
     print("Serial monitor initiated.")
     while True:
+        '''
         try:
             altitude = int(ser.readline().decode().strip())
             alt_data.append(altitude)                                   # TODO
@@ -32,13 +33,18 @@ def serial_monitor(port: str, baudrate: int) -> None:
             return
         except ValueError:
             pass
+        '''
+        altitude = random.randint(0, 55)
+        alt_data.append(altitude)
 
 """
 Sets COM port once selected and initialises the DAS serial feed.
 """
 @callback(Output("com-modal", "is_open"), Input("comport-ddwn", "value"))
 def set_comport(selected_port: str):
-    if selected_port=="" or selected_port is None:
+    if selected_port is None:
+        return True
+    elif selected_port=="":
         thread_killer = threading.Thread(target=end_execution_1, args=(2, ))
         thread_killer.start()
         return True
@@ -68,8 +74,12 @@ Displays any popup based on exception case encountered.
         State("com-modal", "is_open"),
     ])
 def update_altitude_value(n_intervals, n_clicks, int_open, ard_open, com_open):
-    if com_open: return None, [html.Span("", style=alt_style)], False, False
     alt_style = {"padding":"15px", "fontSize":"60px"}
+    if com_open:
+        if not comports:
+            thread_killer = threading.Thread(target=end_execution_1, args=(2,))
+            thread_killer.start()
+        return None, [html.Span("", style=alt_style)], False, False
     data['time'].append(time.strftime("%H:%M:%S"))
     data['altitude'].append(altitude)
     with open("Altitude.csv", "a") as file:
@@ -108,7 +118,7 @@ def end_execution_1(n_clicks):
             elif n_clicks==2:
                 print("No COM Port available.")
                 print("No COM Port available.", file=file)
-        time.sleep(0.3)
+        time.sleep(0.25)
         os.kill(os.getpid(), signal.SIGINT)
 
 """
@@ -136,7 +146,6 @@ if __name__ == "__main__":
         alt_data.append(altitude)
         error_code = 0
         comports = [str(x) for x in serial.tools.list_ports.comports()]
-        print(comports)
         data = {
             'time': [],
             'altitude': [],
