@@ -19,10 +19,9 @@ def serial_monitor(port: str, baudrate: int) -> None:
     ser = serial.Serial(port=port, baudrate=baudrate)
     print("Serial monitor initiated.")
     while True:
-        '''
         try:
             altitude = int(ser.readline().decode().strip())
-            alt_data.append(altitude)                                   # TODO
+            alt_data.append(altitude)
         except serial.serialutil.SerialException as e:
             print("Arduino disconnected. <serial>")
             error_code = 1
@@ -33,15 +32,16 @@ def serial_monitor(port: str, baudrate: int) -> None:
             return
         except ValueError:
             pass
-        '''
-        altitude = random.randint(0, 55)
-        alt_data.append(altitude)
 
 """
 Sets COM port once selected and initialises the DAS serial feed.
 """
 @callback(Output("com-modal", "is_open"), Input("comport-ddwn", "value"))
 def set_comport(selected_port: str):
+    # print("COM Port callback")
+    print(selected_port)
+    if len(comports)==1:
+        selected_port = comports[0].split()[0]
     if selected_port is None:
         return True
     elif selected_port=="":
@@ -80,6 +80,13 @@ def update_altitude_value(n_intervals, n_clicks, int_open, ard_open, com_open):
             thread_killer = threading.Thread(target=end_execution_1, args=(2,))
             thread_killer.start()
         return None, [html.Span("", style=alt_style)], False, False
+    # if len(comports)==1:
+        # thread_serial = threading.Thread(target=serial_monitor, args=(comports[0].split()[0], 9600))
+    # try:
+        # thread_serial.start()
+    # except KeyboardInterrupt:
+        # print("User interrupted operation.")
+        # os.kill(os.getpid(), signal.SIGINT)
     data['time'].append(time.strftime("%H:%M:%S"))
     data['altitude'].append(altitude)
     with open("Altitude.csv", "a") as file:
@@ -142,10 +149,11 @@ if __name__ == "__main__":
     try:
         # initialisation of global/main variables
         altitude = 0
-        alt_data = []                                                   # TODO
-        alt_data.append(altitude)
+        alt_data = []
+        # alt_data.append(altitude)
         error_code = 0
-        comports = [str(x) for x in serial.tools.list_ports.comports()]
+        comports = sorted([str(x) for x in serial.tools.list_ports.comports()])
+        print(comports)
         data = {
             'time': [],
             'altitude': [],
@@ -169,11 +177,11 @@ if __name__ == "__main__":
             dbc.Modal([
                 dbc.ModalHeader(dbc.ModalTitle("Server Shutdown.", style={"fontSize":"30px"}), close_button=True),
                 dbc.ModalBody("The Arduino connection is lost.", style={"fontSize":"20px"}),
-                ], id="ard-modal", keyboard=False, backdrop=True, is_open=False),
+                ], id="ard-modal", keyboard=True, backdrop=True, is_open=False),
             dbc.Modal([
-                dbc.ModalHeader(dbc.ModalTitle("Select COM Port", style={"fontSize":"30px"}), close_button=False),
-                dcc.Dropdown(comports, clearable=False, id="comport-ddwn") if comports else dbc.ModalBody("No COM ports are connected.", style={"fontSize":"20px"}, id="comport-ddwn"),
-            ], id="com-modal", keyboard=False, backdrop=True, is_open=False),
+                dbc.ModalHeader(dbc.ModalTitle("Select COM Port", style={"fontSize":"30px"})),
+                dbc.ModalBody(dcc.Dropdown(comports, id="comport-ddwn")) if comports else dbc.ModalBody("No COM ports are available.", style={"fontSize":"20px"}, id="comport-ddwn"),
+            ], id="com-modal", keyboard=True, backdrop=True, is_open=(len(comports)!=1)),
         ])
         print("Setup complete")
         app.run(debug=False, use_reloader=False)
