@@ -1,4 +1,4 @@
-import time, threading, random
+import time, threading
 import os, signal
 from dash import Dash, dcc, html, Input, Output, callback, State
 from dash_daq import StopButton
@@ -7,15 +7,10 @@ import plotly, plotly.subplots
 import serial, serial.serialutil, serial.tools.list_ports
 
 """
-1.  COM Port Selector
-if not selected: show_popup => State(COM_selected, com_modal_selected)
-"""
-
-"""
 Reads values from serial port and updates 'altitude'.
 """
 def serial_monitor(port: str, baudrate: int) -> None:
-    global ser, altitude, error_code
+    global altitude, error_code
     ser = serial.Serial(port=port, baudrate=baudrate)
     print("Serial monitor initiated.")
     while True:
@@ -34,28 +29,16 @@ def serial_monitor(port: str, baudrate: int) -> None:
             pass
 
 """
-Sets COM port once selected and initialises the DAS serial feed.
+Sets COM port once selected and initialises the serial feed.
 """
-@callback(Output("com-modal", "is_open"), Input("comport-ddwn", "value"))
 def set_comport(selected_port: str):
-    # print("COM Port callback")
-    print(selected_port)
-    if len(comports)==1:
-        selected_port = comports[0].split()[0]
-    if selected_port is None:
-        return True
-    elif selected_port=="":
-        thread_killer = threading.Thread(target=end_execution_1, args=(2, ))
-        thread_killer.start()
-        return True
-    selected_port = selected_port.split()[0]
+    global error_code
     thread_serial = threading.Thread(target=serial_monitor, args=(selected_port, 9600))
     try:
         thread_serial.start()
     except KeyboardInterrupt:
-        print("User interrupted operation.")
-        os.kill(os.getpid(), signal.SIGINT)
-    return False
+        error_code = 2
+        end_execution_1(1)
 
 """
 Displays any popup based on exception case encountered.
@@ -71,26 +54,13 @@ Displays any popup based on exception case encountered.
     ], [
         State("int-modal", "is_open"),
         State("ard-modal", "is_open"),
-        State("com-modal", "is_open"),
     ])
-def update_altitude_value(n_intervals, n_clicks, int_open, ard_open, com_open):
+def update_altitude_value(n_intervals, n_clicks, int_open, ard_open):
     alt_style = {"padding":"15px", "fontSize":"60px"}
-    if com_open:
-        if not comports:
-            thread_killer = threading.Thread(target=end_execution_1, args=(2,))
-            thread_killer.start()
-        return None, [html.Span("", style=alt_style)], False, False
-    # if len(comports)==1:
-        # thread_serial = threading.Thread(target=serial_monitor, args=(comports[0].split()[0], 9600))
-    # try:
-        # thread_serial.start()
-    # except KeyboardInterrupt:
-        # print("User interrupted operation.")
-        # os.kill(os.getpid(), signal.SIGINT)
     data['time'].append(time.strftime("%H:%M:%S"))
     data['altitude'].append(altitude)
     with open("Altitude.csv", "a") as file:
-        print(time.strftime("%Y/%m/%d %H:%M:%S"), altitude, file=file)
+        print(time.strftime("%Y/%m/%d, %H:%M:%S,"), str(altitude)+", ", file=file)
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
     fig['layout']['legend'] = {'x':0, 'y':0, 'xanchor':'left'}
 
@@ -124,7 +94,6 @@ def end_execution_1(n_clicks):
                 print("User terminated operation.", file=file)
             elif n_clicks==2:
                 print("No COM Port available.")
-                print("No COM Port available.", file=file)
         time.sleep(0.25)
         os.kill(os.getpid(), signal.SIGINT)
 
@@ -150,16 +119,29 @@ if __name__ == "__main__":
         # initialisation of global/main variables
         altitude = 0
         alt_data = []
-        # alt_data.append(altitude)
         error_code = 0
+        # setting up COM ports
         comports = sorted([str(x) for x in serial.tools.list_ports.comports()])
-        print(comports)
+        if comports:
+            if len(comports)!=1:
+                print("Select a COM Port for Altitude Input:")
+                for i, port in enumerate(comports):
+                    print(f"{i+1}. {port}")
+                selected_port = comports[int(input("Enter option: "))-1].split()[0]
+            else: selected_port = comports[0].split()[0]
+            try:
+                set_comport(selected_port=selected_port)
+            except KeyboardInterrupt:
+                error_code = 2
+                end_execution_1(1)
+        else:
+            end_execution_1(2)
         data = {
             'time': [],
             'altitude': [],
         }
-        external_css = ["https://codepen.io/chriddyp/pen/bWLwgP.css", dbc.themes.BOOTSTRAP]
         # initialisation of Dash Webpage
+        external_css = ["https://codepen.io/chriddyp/pen/bWLwgP.css", dbc.themes.BOOTSTRAP]
         app = Dash(__name__, external_stylesheets=external_css)
         app.layout = html.Div([
             html.Div([
@@ -180,10 +162,11 @@ if __name__ == "__main__":
                 ], id="ard-modal", keyboard=True, backdrop=True, is_open=False),
             dbc.Modal([
                 dbc.ModalHeader(dbc.ModalTitle("Select COM Port", style={"fontSize":"30px"})),
-                dbc.ModalBody(dcc.Dropdown(comports, id="comport-ddwn")) if comports else dbc.ModalBody("No COM ports are available.", style={"fontSize":"20px"}, id="comport-ddwn"),
-            ], id="com-modal", keyboard=True, backdrop=True, is_open=(len(comports)!=1)),
+                dbc.ModalBody("No COM ports are available.", style={"fontSize":"20px"}, id="comport-ddwn"),
+            ], id="com-modal", keyboard=True, backdrop=True, is_open=(not comports)) if not comports else None,
         ])
         print("Setup complete")
         app.run(debug=False, use_reloader=False)
     except KeyboardInterrupt:
-        os.kill(os.getpid(), signal.SIGINT)
+        error_code = 2
+        end_execution_1(1)
