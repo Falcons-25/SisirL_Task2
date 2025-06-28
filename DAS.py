@@ -18,7 +18,9 @@ def serial_monitor(port: str, baudrate: int) -> None:
     ser = serial.Serial(port=port, baudrate=baudrate)
     while True:
         try:
-            altitude = int(ser.readline().decode().strip())
+            data = ser.readline().decode().strip()
+            print(data, flush=True)
+            altitude = float(data.split(',')[1])
             alt_data.append(altitude)
         except serial.serialutil.SerialException as e:
             print("Arduino disconnected. <serial>")
@@ -29,6 +31,7 @@ def serial_monitor(port: str, baudrate: int) -> None:
             error_code = 2
             return
         except ValueError:
+            print("Value error")
             pass
 
 """
@@ -114,7 +117,7 @@ if __name__ == "__main__":
             'time': [],
             'altitude': [],
         }
-        thread_serial = threading.Thread(target=serial_monitor, args=("COM9", 9600))
+        thread_serial = threading.Thread(target=serial_monitor, args=("COM14", 57600))
         try:
             thread_serial.start()
         except KeyboardInterrupt:
